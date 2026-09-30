@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Регистрация - AI Chat</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-box">
+            <h2>Создать аккаунт</h2>
+            <p class="auth-subtitle">Получи доступ к умному ИИ-помощнику</p>
+
+            <form id="registerForm">
+                <div class="input-group">
+                    <label>Имя пользователя</label>
+                    <input type="text" id="username" required placeholder="Введите имя">
+                </div>
+
+                <div class="input-group">
+                    <label>Email</label>
+                    <input type="email" id="email" required placeholder="example@mail.com">
+                </div>
+
+                <div class="input-group">
+                    <label>Пароль</label>
+                    <input type="password" id="password" required placeholder="Минимум 6 символов">
+                </div>
+
+                <div class="input-group">
+                    <label>Реферальный код (если есть)</label>
+                    <input type="text" id="refCode" placeholder="REF...">
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-full">Зарегистрироваться</button>
+            </form>
+
+            <div id="message" class="message"></div>
+
+            <div class="auth-link">
+                Уже есть аккаунт? <a href="login.html">Войти</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const data = {
+                username: document.getElementById('username').value,
+                email: document.getElementById('email').value,
+                password: document.getElementById('password').value,
+                refCode: document.getElementById('refCode').value
+            };
+
+            try {
+                const response = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Сохраняем токен
+                    localStorage.setItem('token', result.token);
+                    localStorage.setItem('userId', result.userId);
+                    localStorage.setItem('refCode', result.refCode);
+                    
+                    showMessage('Регистрация успешна! Перенаправляем...', 'success');
+                    
+                    setTimeout(() => {
+                        window.location.href = 'chat.html';
+                    }, 1500);
+                } else {
+                    showMessage(result.error, 'error');
+                }
+            } catch (error) {
+                showMessage('Ошибка подключения', 'error');
+            }
+        });
+
+        function showMessage(text, type) {
+            const msgDiv = document.getElementById('message');
+            msgDiv.textContent = text;
+            msgDiv.className = 'message ' + type;
+            msgDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html>

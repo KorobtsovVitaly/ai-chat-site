@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Чат с ИИ</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h2>🤖 AI Assistant</h2>
+            <div class="user-info">
+                <span id="username">Пользователь</span>
+                <span class="balance" id="balance">0 ₽</span>
+            </div>
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+            <div class="message bot">
+                <div class="message-content">
+                    Привет! Я твой ИИ-помощник. Задавай любые вопросы!
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-input-area">
+            <input type="text" id="questionInput" placeholder="Задай свой вопрос..." autocomplete="off">
+            <button id="sendBtn" class="btn-send">➤</button>
+        </div>
+
+        <div class="chat-stats">
+            <span>Вопросов задано: <strong id="questionsCount">0</strong></span>
+            <a href="#" onclick="logout()" class="logout-link">Выйти</a>
+        </div>
+    </div>
+
+    <script>
+        const userId = localStorage.getItem('userId');
+        const token = localStorage.getItem('token');
+
+        if (!userId || !token) {
+            window.location.href = 'register.html';
+        }
+
+        // Загружаем данные пользователя
+        loadUserData();
+
+        // Отправка вопроса
+        document.getElementById('sendBtn').addEventListener('click', sendQuestion);
+        document.getElementById('questionInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendQuestion();
+        });
+
+        async function loadUserData() {
+            try {
+                const response = await fetch(`/api/user/${userId}`);
+                const user = await response.json();
+                
+                document.getElementById('username').textContent = user.username;
+                document.getElementById('balance').textContent = user.balance + ' ₽';
+                document.getElementById('questionsCount').textContent = user.questions_count;
+            } catch (error) {
+                console.error('Ошибка загрузки данных');
+            }
+        }
+
+        async function sendQuestion() {
+            const input = document.getElementById('questionInput');
+            const question = input.value.trim();
+
+            if (!question) return;
+
+            // Добавляем сообщение пользователя
+            addMessage(question, 'user');
+            input.value = '';
+
+            // Показываем индикатор загрузки
+            addLoadingIndicator();
+
+            try {
+                const response = await fetch('/api/ask', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ userId, question })
+                });
+
+                const result = await response.json();
+
+                removeLoadingIndicator();
+
+                if (result.success) {
+                    addMessage(result.answer, 'bot');
+                    document.getElementById('questionsCount').textContent = result.questionsCount;
+                } else {
+                    addMessage('Ошибка: ' + result.error, 'bot');
+                }
+            } catch (error) {
+                removeLoadingIndicator();
+                addMessage('Ошибка подключения к серверу', 'bot');
+            }
+        }
+
+        function addMessage(text, sender) {
+            const messagesDiv = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+            messageDiv.innerHTML = `<div class="message-content">${text}</div>`;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function addLoadingIndicator() {
+            const messagesDiv = document.getElementById('chatMessages');
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'message bot loading';
+            loadingDiv.id = 'loadingIndicator';
+            loadingDiv.innerHTML = '<div class="message-content">Думаю...</div>';
+            messagesDiv.appendChild(loadingDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function removeLoadingIndicator() {
+            const loading = document.getElementById('loadingIndicator');
+            if (loading) loading.remove();
+        }
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = 'index.html';
+        }
+    </script>
+</body>
+</html>
